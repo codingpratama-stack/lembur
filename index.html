@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Rekap & Hitung Lembur Harian</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .main-container {
+            max-width: 900px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        @media (min-width: 768px) {
+            .main-container {
+                grid-template-columns: 1fr 2fr;
+            }
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        h2, h3 {
+            margin-top: 0;
+            color: #1a73e8;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        .summary-card {
+            background: #e8f0fe;
+            border-left: 5px solid #1a73e8;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .summary-title {
+            font-size: 14px;
+            color: #5f6368;
+        }
+        .summary-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1a73e8;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #555;
+        }
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            width: auto;
+        }
+        .btn-delete:hover {
+            background: #bd2130;
+        }
+        .btn-clear {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 10px;
+            width: auto;
+        }
+        .btn-clear:hover {
+            background: #5a6268;
+        }
+        .badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-kerja { background: #e3f2fd; color: #0d47a1; }
+        .badge-libur { background: #fbe9e7; color: #d84315; }
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+
+    <!-- Form Input Harian -->
+    <div class="card">
+        <h2>Input Lembur Harian</h2>
+        
+        <div class="form-group">
+            <label for="gaji">Gaji Pokok / Bulan (Rp)</label>
+            <input type="number" id="gaji" placeholder="Contoh: 5000000" oninput="simpanGaji(); hitungSemua();">
+        </div>
+
+        <hr style="border: none; border-top: 1px solid #eee; margin: 15px 0;">
+
+        <div class="form-group">
+            <label for="tanggal">Tanggal Lembur</label>
+            <input type="date" id="tanggal">
+        </div>
+
+        <div class="form-group">
+            <label for="jenisHari">Jenis Hari</label>
+            <select id="jenisHari">
+                <option value="kerja">Hari Kerja Biasa</option>
+                <option value="libur">Hari Libur / Akhir Pekan</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="durasi">Durasi Lembur (Jam)</label>
+            <input type="number" id="durasi" min="0.5" step="0.5" placeholder="Contoh: 3">
+        </div>
+
+        <button onclick="tambahDataLembur()">+ Tambah Hari Ini</button>
+    </div>
+
+    <!-- Tabel & Rekap Total -->
+    <div class="card">
+        <div class="flex-between">
+            <h3>Rekapitulasi Lembur</h3>
+            <button class="btn-clear" onclick="hapusSemuaData()">Reset Semua Data</button>
+        </div>
+
+        <div class="summary-card">
+            <div>
+                <div class="summary-title">Upah per Jam (1/173):</div>
+                <div class="summary-value" id="dispUpahSejam">Rp 0</div>
+            </div>
+            <div style="text-align: right;">
+                <div class="summary-title">Total Uang Lembur:</div>
+                <div class="summary-value" id="dispTotalSemua" style="color: #28a745;">Rp 0</div>
+            </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tanggal</th>
+                        <th>Jenis Hari</th>
+                        <th>Durasi</th>
+                        <th>Subtotal</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelLembur">
+                    <tr>
+                        <td colspan="5" style="text-align: center; color: #888;">Belum ada data lembur yang diinput.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Ambil data lembur tersimpan dari localStorage atau gunakan array kosong
+    let daftarLembur = JSON.parse(localStorage.getItem('daftarLembur')) || [];
+
+    // Set tanggal default ke hari ini
+    document.getElementById('tanggal').valueAsDate = new Date();
+
+    // Muat gaji pokok tersimpan saat halaman pertama kali dibuka
+    if (localStorage.getItem('gajiPokok')) {
+        document.getElementById('gaji').value = localStorage.getItem('gajiPokok');
+    }
+
+    // Simpan gaji pokok secara otomatis
+    function simpanGaji() {
+        const gaji = document.getElementById('gaji').value;
+        localStorage.setItem('gajiPokok', gaji);
+    }
+
+    // Simpan daftar lembur ke localStorage
+    function simpanDaftarLembur() {
+        localStorage.setItem('daftarLembur', JSON.stringify(daftarLembur));
+    }
+
+    function formatRupiah(angka) {
+        return new Intl.NumberFormat('id-ID', {
+            style: 'currency',
+            currency: 'IDR',
+            maximumFractionDigits: 0
+        }).format(angka);
+    }
+
+    function hitungJamEfektif(durasi, jenisHari) {
+        let jamEfektif = 0;
+        if (jenisHari === 'kerja') {
+            if (durasi > 1) {
+                jamEfektif = 1.5 + ((durasi - 1) * 2);
+            } else {
+                jamEfektif = durasi * 1.5;
+            }
+        } else {
+            if (durasi <= 8) {
+                jamEfektif = durasi * 2;
+            } else if (durasi === 9) {
+                jamEfektif = (8 * 2) + 3;
+            } else {
+                jamEfektif = (8 * 2) + 3 + ((durasi - 9) * 4);
+            }
+        }
+        return jamEfektif;
+    }
+
+    function tambahDataLembur() {
+        const gaji = parseFloat(document.getElementById('gaji').value);
+        const tanggal = document.getElementById('tanggal').value;
+        const jenisHari = document.getElementById('jenisHari').value;
+        const durasi = parseFloat(document.getElementById('durasi').value);
+
+        if (isNaN(gaji) || gaji <= 0) {
+            alert("Harap isi Gaji Pokok terlebih dahulu!");
+            return;
+        }
+
+        if (!tanggal || isNaN(durasi) || durasi <= 0) {
+            alert("Harap isi tanggal dan durasi lembur dengan benar!");
+            return;
+        }
+
+        const item = {
+            id: Date.now(),
+            tanggal: tanggal,
+            jenisHari: jenisHari,
+            durasi: durasi
+        };
+
+        daftarLembur.push(item);
+        simpanDaftarLembur(); // Simpan ke localStorage
+        
+        document.getElementById('durasi').value = '';
+        renderTabel();
+    }
+
+    function hapusItem(id) {
+        daftarLembur = daftarLembur.filter(item => item.id !== id);
+        simpanDaftarLembur(); // Perbarui localStorage
+        renderTabel();
+    }
+
+    function hapusSemuaData() {
+        if (confirm("Apakah Anda yakin ingin menghapus semua rekap lembur?")) {
+            daftarLembur = [];
+            localStorage.removeItem('daftarLembur');
+            renderTabel();
+        }
+    }
+
+    function renderTabel() {
+        const gaji = parseFloat(document.getElementById('gaji').value) || 0;
+        const upahSejam = gaji / 173;
+        const tbody = document.getElementById('tabelLembur');
+        
+        document.getElementById('dispUpahSejam').innerText = formatRupiah(upahSejam);
+
+        if (daftarLembur.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #888;">Belum ada data lembur yang diinput.</td></tr>`;
+            document.getElementById('dispTotalSemua').innerText = formatRupiah(0);
+            return;
+        }
+
+        tbody.innerHTML = '';
+        let totalSemuaUangLembur = 0;
+
+        daftarLembur.forEach(item => {
+            const jamEfektif = hitungJamEfektif(item.durasi, item.jenisHari);
+            const subtotalUang = jamEfektif * upahSejam;
+            totalSemuaUangLembur += subtotalUang;
+
+            const badgeClass = item.jenisHari === 'kerja' ? 'badge-kerja' : 'badge-libur';
+            const jenisText = item.jenisHari === 'kerja' ? 'Kerja' : 'Libur';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${item.tanggal}</td>
+                <td><span class="badge ${badgeClass}">${jenisText}</span></td>
+                <td>${item.durasi} Jam</td>
+                <td><b>${formatRupiah(subtotalUang)}</b></td>
+                <td><button class="btn-delete" onclick="hapusItem(${item.id})">Hapus</button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        document.getElementById('dispTotalSemua').innerText = formatRupiah(totalSemuaUangLembur);
+    }
+
+    function hitungSemua() {
+        renderTabel();
+    }
+
+    // Render otomatis saat halaman pertama kali dimuat
+    renderTabel();
+</script>
+
+</body>
+</html>
